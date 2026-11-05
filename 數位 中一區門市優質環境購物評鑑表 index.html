@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>門市優質購物環境評鑑表 (2026.10.15 雲端連動版)</title>
+  <style>
+    :root {
+      --border: #000000;
+      --danger: #d93025;
+      --pass-bg: #e8f5e9;
+      --fail-bg: #ffebee;
+      --circle: #d93025;
+      --lock-bg: #f3f4f6;
+    }
+    * { box-sizing: border-box; font-family: "PMingLiU", "MingLiU", "Microsoft JhengHei", serif; }
+    body { background: #f0f2f5; margin: 0; padding: 10px; color: #000; }
+    .page-container {
+      max-width: 1080px; margin: 0 auto; background: #fff;
+      padding: 16px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+      border: 1px solid #ccc;
+    }
+    
+    /* 表頭區塊 */
+    .header-wrap { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 6px; position: relative; }
+    .title-area { flex: 1; }
+    .title-area h1 { margin: 0 0 6px 0; font-size: 1.5rem; letter-spacing: 2px; font-weight: bold; text-align: center; }
+    
+    /* 表頭資訊單行排版 */
+    .meta-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.82rem;
+      width: 100%;
+      gap: 4px;
+      line-height: 1.6;
+    }
+    .meta-bar span { display: inline-flex; align-items: center; white-space: nowrap; }
+    .meta-bar input {
+      border: none; border-bottom: 1.5px solid #000; text-align: center;
+      font-size: 0.85rem; padding: 0 1px; background: transparent; font-weight: bold;
+    }
+    .meta-bar input.locked-time {
+      background-color: var(--lock-bg); color: #b91c1c;
+      border: 1px solid #9ca3af; border-radius: 4px; cursor: not-allowed;
+      font-family: Arial, sans-serif; padding: 1px 3px; user-select: none;
+    }
+    .lock-tag {
+      font-size: 0.72rem; background: #fee2e2; color: #991b1b;
+      padding: 1px 4px; border-radius: 4px; border: 1px solid #f87171;
+      font-family: "Microsoft JhengHei", sans-serif; font-weight: bold;
+    }
+    .stamp-box {
+      width: 75px; height: 75px; border: 1.5px solid #000; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; color: #555; flex-shrink: 0; margin-left: 8px; font-weight: bold;
+    }
+
+    /* 雙欄與響應式排版 */
+    .audit-grid { display: grid; grid-template-columns: 1fr 1fr; border: 2.5px solid #000; flex: 1; }
+    
+    .col-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .col-table th, .col-table td {
+      border: 1.5px solid #000; padding: 4px 3px;
+      font-size: 0.82rem; vertical-align: middle; line-height: 1.25; word-break: break-all;
+    }
+    .col-table th { background: #f0f0f0; font-weight: bold; text-align: center; height: 30px; font-size: 0.86rem; }
+    
+    .col-area { width: 32px; text-align: center; font-weight: bold; background: #fafafa; writing-mode: vertical-lr; letter-spacing: 2px; border-right: 2px solid #000 !important; }
+    .col-item-title { border-right: 2px solid #000 !important; }
+    .col-pts { width: 95px; text-align: center; font-family: Arial, sans-serif; font-weight: bold; border-right: 2px solid #000 !important; }
+    .col-score { width: 35px; text-align: center; font-family: Arial, sans-serif; font-weight: bold; font-size: 0.95rem; color: #0056b3; }
+
+    #leftTable { border-right: 2.5px solid #000; }
+
+    /* 評核子項目 */
+    .sub-item-wrap { display: block; margin: 2px 0; }
+    .sub-item {
+      display: inline-block; padding: 2px 4px;
+      border-radius: 3px; cursor: pointer; border: 1px solid #aaa;
+      background: var(--pass-bg); transition: 0.15s; user-select: none;
+    }
+    .sub-item.deducted {
+      background: var(--fail-bg); color: var(--danger);
+      border-color: var(--danger); font-weight: bold; text-decoration: line-through;
+    }
+    .pt-grid { display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; text-align: center; }
+    .pt-num { display: inline-block; width: 16px; height: 16px; line-height: 14px; border-radius: 50%; margin: 0 auto; font-size: 0.75rem; }
+    .pt-num.active { border: 2px solid var(--circle); color: var(--circle); font-weight: 900; background: #fff8f8; }
+
+    /* 缺失佐證抽屜 */
+    .evidence-drawer {
+      margin-top: 4px; margin-bottom: 6px; padding: 6px; background: #fff5f5;
+      border: 1px dashed var(--danger); border-radius: 4px; display: none;
+      font-family: "Microsoft JhengHei", sans-serif;
+    }
+    .evidence-drawer.show { display: block; }
+    .evidence-drawer input[type="text"] {
+      width: 100%; padding: 4px 6px; font-size: 0.8rem; margin-bottom: 4px;
+      border: 1px solid #ccc; border-radius: 3px; font-family: "Microsoft JhengHei", sans-serif;
+    }
+    .upload-btn-group { display: flex; gap: 4px; flex-wrap: wrap; }
+    .upload-btn {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 3px 6px; font-size: 0.72rem; font-weight: bold;
+      border-radius: 3px; cursor: pointer; border: 1px solid #00704A;
+      background: #fff; color: #00704A; font-family: "Microsoft JhengHei", sans-serif;
+    }
+    .upload-btn.camera { border-color: #2563eb; color: #2563eb; }
+    .thumb-wrap { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+    .thumb-item { position: relative; width: 50px; height: 50px; }
+    .thumb-item img { width: 100%; height: 100%; object-fit: cover; border: 1px solid #999; border-radius: 3px; }
+    .thumb-del {
+      position: absolute; top: -5px; right: -5px; width: 16px; height: 16px;
+      background: var(--danger); color: #fff; border-radius: 50%; font-size: 11px;
+      line-height: 14px; text-align: center; cursor: pointer; font-weight: bold; border: 1px solid #fff;
+    }
+
+    /* 觀察項目樣式 */
+    .obs-row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; border-bottom: 1px dotted #888; font-size: 0.78rem; flex-wrap: wrap; }
+    .obs-row:last-child { border-bottom: none; }
+    .obs-opts label { margin-left: 3px; cursor: pointer; white-space: nowrap; }
+
+    /* 尾部統計欄位 */
+    .footer-box { border: 2.5px solid #000; border-top: none; padding: 6px 8px; font-size: 0.82rem; }
+    .grade-line { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 4px; }
+    .grade-opt { padding: 1px 3px; border-radius: 3px; }
+    .grade-opt.active { background: #ffeb3b; font-weight: bold; border: 1.5px solid #d93025; color: #b71c1c; }
+    .calc-line { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; font-weight: bold; border-top: 1.5px solid #000; padding-top: 4px; gap: 6px; }
+    .calc-blank { display: inline-block; min-width: 20px; border-bottom: 1.5px solid #000; text-align: center; color: #d93025; font-size: 0.95rem; }
+
+    /* 工具與備註欄 */
+    .tools-box {
+      border: 2.5px solid #000; border-top: none; padding: 4px 6px;
+      font-size: 0.72rem; line-height: 1.35; background: #fafafa;
+    }
+    .sign-bar {
+      display: flex; justify-content: space-between; margin-top: 8px;
+      font-size: 0.9rem; font-weight: bold; padding: 0 4px; flex-wrap: wrap; gap: 8px;
+    }
+    .sign-line { display: inline-block; width: 140px; border-bottom: 1.5px solid #000; }
+
+    .print-summary-section { display: none; }
+
+    /* 上方控制工具列 */
+    .toolbar {
+      max-width: 1080px; margin: 0 auto 12px auto; background: #1f2937; color: #fff;
+      padding: 12px; border-radius: 8px; font-family: "Microsoft JhengHei", sans-serif;
+    }
+    .toolbar-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .toolbar-cloud {
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid #374151;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.85rem;
+    }
+    .toolbar-cloud input {
+      flex: 1; min-width: 200px; padding: 5px 8px; border-radius: 4px; border: 1px solid #4b5563;
+      background: #111827; color: #e5e7eb; font-family: monospace; font-size: 0.82rem;
+    }
+    .toolbar button {
+      padding: 7px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.85rem;
+      font-family: "Microsoft JhengHei", sans-serif;
+    }
+    .btn-cloud { background: #2563eb; color: white; box-shadow: 0 0 8px rgba(37,99,235,0.6); }
+    .btn-cloud:disabled { background: #6b7280; cursor: wait; }
+    .btn-test { background: #4b5563; color: #fff; font-size: 0.8rem !important; padding: 5px 8px !important; }
+    .btn-print { background: #10b981; color: white; }
+    .btn-reset { background: #ef4444; color: white; }
+
+    /* 手機版 (RWD 響應式優化) */
+    @media screen and (max-width: 768px) {
+      body { padding: 5px; }
+      .page-container { padding: 10px; }
+      .header-wrap { flex-direction: column; align-items: center; text-align: center; }
+      .stamp-box { display: none; }
+      .meta-bar { justify-content: center; gap: 6px; }
+      .audit-grid { grid-template-columns: 1fr; border-bottom: none; }
+      #leftTable { border-right: none; border-bottom: 2.5px solid #000; }
+      .col-area { width: 26px; font-size: 0.78rem; }
+      .col-pts { width: 85px; }
+      .pt-num { width: 14px; height: 14px; line-height: 12px; font-size: 0.7rem; }
+    }
+
+    /* 列印專用樣式 */
+    @media print {
+      @page { size: A4 portrait; margin: 6mm 8mm; }
+      html, body { height: 100%; margin: 0; padding: 0; background: #fff; }
+      .page-container { box-shadow: none; border: none; padding: 0; max-width: 100%; width: 100%; }
+      .toolbar, .evidence-drawer, .lock-tag { display: none !important; }
+      .stamp-box { display: flex !important; }
+      .audit-grid { grid-template-columns: 1fr 1fr !important; }
+      #leftTable { border-right: 2.5px solid #000 !important; border-bottom: none !important; }
+      .meta-bar input.locked-time { border: none; border-bottom: 1px solid #000; background: transparent; color: #000; border-radius: 0; }
+      
+      .main-form-wrapper {
+        display: flex; flex-direction: column; justify-content: space-between;
+        height: 100vh; page-break-after: always; break-after: page; box-sizing: border-box; padding-bottom: 4px;
+      }
+      .header-wrap { flex-direction: row; }
+      .title-area h1 { font-size: 1.45rem; margin-bottom: 4px; letter-spacing: 3px; }
+      .meta-bar { font-size: 0.78rem; line-height: 1.3; gap: 2px; }
+      
+      .print-summary-section { display: block !important; }
+      .print-grid-container { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 6px !important; }
+      .print-card-item {
+        border: 1.5px solid #000 !important; border-radius: 4px !important; padding: 5px 6px !important;
+        background: #fff !important; box-sizing: border-box !important; height: 208px !important;
+        display: flex !important; flex-direction: column !important; justify-content: space-between !important;
+        page-break-inside: avoid !important; break-inside: avoid !important;
+      }
+      .print-card-title { font-size: 0.75rem !important; font-weight: bold !important; color: #d93025 !important; border-bottom: 1px dashed #aaa !important; margin-bottom: 3px !important; }
+      .print-card-note { font-size: 0.68rem !important; color: #333 !important; font-weight: normal !important; }
+      .print-photo-area { flex: 1 !important; display: flex !important; gap: 4px !important; align-items: center !important; justify-content: center !important; overflow: hidden !important; }
+      .print-photo-area img { max-width: 100% !important; height: 110px !important; object-fit: contain !important; border: 1px solid #000 !important; }
+      .print-card-footer { border-top: 1px dotted #888 !important; padding-top: 3px !important; font-size: 0.65rem !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="toolbar-top">
+    <div style="font-size:0.88rem;">
+      <strong>☁️ 雲端硬碟連動：</strong>評分完成點選「上傳雲端硬碟」即可寫入成績。
+    </div>
+    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+      <button class="btn-cloud" id="cloudUploadBtn" onclick="uploadToGoogleDrive()">☁️ 上傳雲端硬碟</button>
+      <button class="btn-print" onclick="preparePrint()">儲存 PDF / 列印</button>
+      <button class="btn-reset" onclick="resetAll()">重設</button>
+    </div>
+  </div>
+  <div class="toolbar-cloud">
+    <span>🔗 GAS 雲端網址：</span>
+    <input type="text" id="gasUrlInput" oninput="saveGasUrl(this.value)">
+    <button class="btn-test" onclick="testGasConnection()">🔍 測試連線</button>
+    <span id="uploadStatusMsg" style="color:#34d399; font-weight:bold; width:100%; margin-top:2px;"></span>
+  </div>
+</div>
+
+<div class="page-container">
+  <div class="main-form-wrapper">
+    <!-- 表頭區 -->
+    <div class="header-wrap">
+      <div class="title-area">
+        <h1>中一ZONE 門市優質購物環境評鑑表</h1>
+        
+        <div class="meta-bar">
+          <span><input type="text" id="zoneInput" style="width:40px;" placeholder="oo">區</span>
+          <span>評核日期：<input type="text" id="mInput" class="locked-time" style="width:20px;" readonly>月<input type="text" id="dInput" class="locked-time" style="width:20px;" readonly>日 <input type="text" id="shInput" class="locked-time" style="width:20px;" readonly>:<input type="text" id="smInput" class="locked-time" style="width:20px;" readonly>至<input type="text" id="ehInput" class="locked-time" style="width:20px;" readonly>:<input type="text" id="emInput" class="locked-time" style="width:20px;" readonly></span>
+          <span>店號：<input type="text" id="storeIdInput" style="width:55px;" maxlength="6" placeholder="6碼" inputmode="numeric"></span>
+          <span>門市：<input type="text" id="storeNameInput" style="width:75px;" placeholder="名稱"></span>
+          <span>評鑑人：<input type="text" id="auditorInput" style="width:60px;" placeholder="姓名"></span>
+          <span class="lock-tag" id="timeStatusTag">⏱️ 時間鎖定</span>
+        </div>
+      </div>
+      <div class="stamp-box">門市店戳</div>
+    </div>
+
+    <!-- 表格主體 -->
+    <div class="audit-grid">
+      <table class="col-table" id="leftTable">
+        <thead>
+          <tr>
+            <th class="col-area">區域</th>
+            <th class="col-item-title">商店形象評分項目（點擊子項扣分）</th>
+            <th class="col-pts">配 分</th>
+            <th class="col-score">得分</th>
+          </tr>
+        </thead>
+        <tbody id="leftBody"></tbody>
+      </table>
+
+      <table class="col-table" id="rightTable">
+        <thead>
+          <tr>
+            <th class="col-area">區域</th>
+            <th class="col-item-title">商店形象評分項目（點擊子項扣分）</th>
+            <th class="col-pts">配 分</th>
+            <th class="col-score">得分</th>
+          </tr>
+        </thead>
+        <tbody id="rightBody"></tbody>
+      </table>
+    </div>
+
+    <!-- 底部統計與等級 -->
+    <div class="footer-box">
+      <div class="grade-line">
+        <strong>等級：</strong>
+        <span class="grade-opt" id="g-Z">□ 75分以下Z級</span>
+        <span class="grade-opt" id="g-C">□ 76~79分C級</span>
+        <span class="grade-opt" id="g-B">□ 80~87分B級</span>
+        <span class="grade-opt" id="g-Am">□ 88~91分A-級</span>
+        <span class="grade-opt" id="g-A">□ 92~95分A級</span>
+        <span class="grade-opt" id="g-Ap">□ 96分以上A+級</span>
+      </div>
+      <div class="calc-line">
+        <div>
+          2分 × <span class="calc-blank" id="cnt-2">0</span> ＋
+          4分 × <span class="calc-blank" id="cnt-4">0</span> ＋
+          6分 × <span class="calc-blank" id="cnt-6">0</span> ＋
+          8分 × <span class="calc-blank" id="cnt-8">0</span> ＝
+          <span class="calc-blank" id="totalScore" style="font-size:1.1rem;">100</span> 分
+        </div>
+        <div>總分 100 分</div>
+      </div>
+    </div>
+
+    <!-- 清潔工具備註 -->
+    <div class="tools-box">
+      ➢ <u>工具：細縫清潔棒(<strong>094836</strong>)、新型手壓拖把(<strong>532925</strong>)、<strong>400179</strong>(手持式吸塵器)、多功能超細纖維布(藍 <strong>643588</strong>、咖啡 <strong>348402</strong>)、3M 除膠劑(<strong>192666</strong>)、萬用去汙液(<strong>462464</strong>)、廁所垃圾桶(46L <strong>816488</strong>、35L <strong>805692</strong>)；</u><br>
+      <u>長期 POP：顧客公約(<strong>173218</strong>)、化妝室公約(<strong>173221</strong>)、廁所檢查表(<strong>742029</strong>)；DUSKIN：靜電撢子、伸縮桿</u>
+      <div style="text-align:right; font-weight:bold; font-family:Arial; margin-top:1px;">2026.10.15</div>
+    </div>
+
+    <div class="sign-bar">
+      <div>門市店經理：<span class="sign-line"></span></div>
+      <div>區顧問/區經理/首阜：<span class="sign-line"></span></div>
+    </div>
+  </div>
+
+  <!-- 第二頁：扣分佐證彙整表 -->
+  <div class="print-summary-section" id="printSummarySection">
+    <div style="border-bottom: 2px solid #222; padding-bottom: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-end;">
+      <div>
+        <h2 style="margin:0 0 2px 0; font-size: 1.15rem;">📋 門市環境評鑑扣分項目與改善追蹤彙整表</h2>
+        <div style="font-size: 0.8rem; color: #444;" id="printMetaHeader"></div>
+      </div>
+      <div style="font-weight: bold; font-size: 1rem; color: #d93025;" id="printScoreHeader"></div>
+    </div>
+    <div class="print-grid-container" id="printSummaryContent"></div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwfkwLaUCXm_r5SWB4jUOLJ9RayfdALAkUVhaz-zZjpWc2isvhFAfet-qe1XdOBz9aH/exec';
+
+function cleanGasUrl(url) {
+  return (url || '').trim().replace(/\/macros\/u\/\d+\/s\//, '/macros/s/');
+}
+
+const rowsData = [
+  { side: 'L', areaKey: 'outer', area: '外圍環境 30分', areaRowSpan: 5, max: 8, subs: ['①外牆柱、壁', '②人行道路面', '③停車場', '④座位區四周清潔無垃圾'] },
+  { side: 'L', areaKey: 'outer', max: 6, subs: ['①ATM 燈箱無污漬/蜘蛛絲', '②公共電話上方清潔', '③垃圾筒清潔未滿溢'] },
+  { side: 'L', areaKey: 'outer', prefix: '騎樓', max: 6, subs: ['①天花板', '②燈座燈管清潔', '③燈管損壞有叫修'] },
+  { side: 'L', areaKey: 'outer', max: 4, subs: ['①騎樓地板無垃圾菸蒂膠痕', '②空箱堆放整齊無堆垃圾'] },
+  { side: 'L', areaKey: 'outer', max: 6, subs: ['①櫥窗玻璃', '②鋁框無污漬殘膠', '③POP 無過期破損掀角'] },
+
+  { side: 'L', areaKey: 'self', area: '自助區 8分', areaRowSpan: 1, max: 8, subs: ['①檯面/飾板無污漬', '②鋼棚/垃圾桶清潔', '③機器設備清潔(含微波爐內)', '④POP 未過期破損翹角'] },
+
+  { side: 'L', areaKey: 'counter', area: '櫃檯區 16分', areaRowSpan: 3, max: 6, subs: ['①收銀機螢幕', '②前後櫃檯檯面淨空', '③菸架前架無積塵污漬'] },
+  { side: 'L', areaKey: 'counter', max: 4, subs: ['①咖啡機週圍(含底部/面板)', '②配件清潔無污漬'] },
+  { side: 'L', areaKey: 'counter', max: 6, subs: ['①水槽無雜物', '②無放置清掃用具', '③EC/宅配商品未直接落地'] },
+
+  { side: 'R', areaKey: 'fridge', area: '冰箱區 14分', areaRowSpan: 2, max: 6, subs: ['①O.S.C/臥式冰箱表面', '②O.S.C 棚板/出風口無污痕', '③O.S.C 上方淨空'] },
+  { side: 'R', areaKey: 'fridge', max: 8, subs: ['①Walk-in 玻璃', '②門框鋁框', '③滑網底板無污痕蟲屍', '④常冷飲料價格卡對應正確'] },
+
+  { side: 'R', areaKey: 'floor', area: '賣場區 22分', areaRowSpan: 3, max: 8, subs: ['①貨架無積灰塵', '②座位區桌面顧客公約', '③貨架飾條無破損', '④機器設備表面清潔'] },
+  { side: 'R', areaKey: 'floor', prefix: '賣場地板：', max: 8, subs: ['①機器下方', '②貨架下緣', '③牆角地板', '④座位區週圍'] },
+  { side: 'R', areaKey: 'floor', max: 6, subs: ['①天花板/冷氣機/迴風扇', '②賣場壁面無污漬蜘蛛絲', '③座位吊燈無灰塵燈泡正常'] },
+
+  { side: 'R', areaKey: 'toilet', area: '廁所管理 10分', areaRowSpan: 2, prefix: '內外廁所', max: 4, subs: ['①清潔無汙垢堵塞雜物', '②垃圾桶加蓋無滿溢'] },
+  { side: 'R', areaKey: 'toilet', max: 6, subs: ['①配置洗手乳或肥皂', '②衛生紙&求救鈴', '③廁所清潔表落實張貼'] }
+];
+
+const state = rowsData.map((r, rIdx) => ({
+  id: rIdx,
+  areaKey: r.areaKey,
+  max: r.max,
+  subPass: r.subs.map(() => true),
+  subNotes: r.subs.map(() => ''),
+  subPhotos: r.subs.map(() => [])
+}));
+
+const pad2 = n => String(n).padStart(2, '0');
+
+function initLockedTime() {
+  const startNow = new Date();
+  document.getElementById('mInput').value = startNow.getMonth() + 1;
+  document.getElementById('dInput').value = startNow.getDate();
+  document.getElementById('shInput').value = pad2(startNow.getHours());
+  document.getElementById('smInput').value = pad2(startNow.getMinutes());
+  syncEndTime();
+  setInterval(syncEndTime, 30000);
+
+  const activeUrl = cleanGasUrl(DEFAULT_GAS_WEB_APP_URL || localStorage.getItem('PCSC_ENV_GAS_URL'));
+  document.getElementById('gasUrlInput').value = activeUrl;
+  localStorage.setItem('PCSC_ENV_GAS_URL', activeUrl);
+}
+
+function saveGasUrl(val) {
+  const cleaned = cleanGasUrl(val);
+  document.getElementById('gasUrlInput').value = cleaned;
+  localStorage.setItem('PCSC_ENV_GAS_URL', cleaned);
+}
+
+function testGasConnection() {
+  const gasUrl = cleanGasUrl(document.getElementById('gasUrlInput').value);
+  if (!gasUrl) {
+    alert('請先填入 GAS 網頁應用程式網址！');
+    return;
+  }
+  window.open(gasUrl, '_blank');
+}
+
+function syncEndTime() {
+  const now = new Date();
+  document.getElementById('ehInput').value = pad2(now.getHours());
+  document.getElementById('emInput').value = pad2(now.getMinutes());
+}
+
+function preparePrint() {
+  syncEndTime();
+  updateCalculations();
+  buildPrintSummary();
+  window.print();
+}
+
+function buildPrintSummary() {
+  const zone = document.getElementById('zoneInput').value || '未填區';
+  const storeId = document.getElementById('storeIdInput').value || '未填店號';
+  const storeName = document.getElementById('storeNameInput').value || '未填門市';
+  const auditor = document.getElementById('auditorInput').value || '未填';
+  const totalScore = document.getElementById('totalScore').innerText;
+
+  document.getElementById('printMetaHeader').innerText = 
+    `區別：${zone} | 店號：${storeId} | 門市名稱：${storeName} | 評鑑人：${auditor}`;
+  document.getElementById('printScoreHeader').innerText = 
+    `總分：${totalScore} 分 (${document.querySelector('.grade-opt.active')?.innerText.replace('■ ', '') || ''})`;
+
+  const container = document.getElementById('printSummaryContent');
+  container.innerHTML = '';
+
+  let hasDeduction = false;
+  let html = '';
+
+  state.forEach((st, rIdx) => {
+    st.subPass.forEach((isPass, sIdx) => {
+      if (!isPass) {
+        hasDeduction = true;
+        const subName = rowsData[rIdx].subs[sIdx];
+        const note = st.subNotes[sIdx] ? `<br><span class="print-card-note">說明：${st.subNotes[sIdx]}</span>` : '';
+        const photos = st.subPhotos[sIdx];
+
+        html += `
+          <div class="print-card-item">
+            <div class="print-card-title">
+              [列${rIdx + 1}] ${subName}${note}
+            </div>
+            
+            <div class="print-photo-area">
+        `;
+
+        if (photos.length > 0) {
+          photos.forEach(src => {
+            html += `<img src="${src}">`;
+          });
+        } else {
+          html += `<div style="font-size: 0.65rem; color: #999; font-style: italic;">（未附照片）</div>`;
+        }
+
+        html += `
+            </div>
+            <div class="print-card-footer">
+              <div>清潔人：________</div>
+              <div>改善日：________</div>
+              <div>檢核人：________</div>
+            </div>
+          </div>
+        `;
+      }
+    });
+  });
+
+  if (!hasDeduction) {
+    html = `<div style="grid-column: 1 / -1; text-align: center; padding: 40px; font-size: 1.1rem; color: #10b981; font-weight: bold;">🎉 本次評鑑全項合格，無任何扣分項目與缺失照片！</div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function renderTables() {
+  const leftBody = document.getElementById('leftBody');
+  const rightBody = document.getElementById('rightBody');
+  leftBody.innerHTML = '';
+  rightBody.innerHTML = '';
+
+  rowsData.forEach((r, rIdx) => {
+    const tr = document.createElement('tr');
+    let html = '';
+    if (r.area) html += `<td class="col-area" rowspan="${r.areaRowSpan}">${r.area}</td>`;
+    html += `<td class="col-item-title">`;
+    if (r.prefix) html += `<span>${r.prefix} </span><br>`;
+
+    r.subs.forEach((sText, sIdx) => {
+      const isPassed = state[rIdx].subPass[sIdx];
+      const drawerShow = !isPassed ? 'show' : '';
+      html += `
+        <div class="sub-item-wrap">
+          <span class="sub-item ${!isPassed ? 'deducted' : ''}" id="sub-${rIdx}-${sIdx}" onclick="toggleSub(${rIdx}, ${sIdx})">${sText}</span>
+          <div class="evidence-drawer ${drawerShow}" id="drawer-${rIdx}-${sIdx}">
+            <input type="text" placeholder="輸入缺失說明..." value="${state[rIdx].subNotes[sIdx]}" oninput="state[${rIdx}].subNotes[${sIdx}] = this.value">
+            <div class="upload-btn-group">
+              <label class="upload-btn">
+                📁 開啟相簿照片
+                <input type="file" accept="image/*" multiple style="display:none;" onchange="handleFiles(event, ${rIdx}, ${sIdx})">
+              </label>
+              <label class="upload-btn camera">
+                📷 拍照
+                <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="handleFiles(event, ${rIdx}, ${sIdx})">
+              </label>
+            </div>
+            <div class="thumb-wrap" id="thumbs-${rIdx}-${sIdx}"></div>
+          </div>
+        </div>
+      `;
+    });
+    html += `</td>`;
+
+    const pts = [0, 2, 4, 6, 8];
+    html += `<td class="col-pts"><div class="pt-grid">`;
+    pts.forEach(p => {
+      html += p <= r.max ? `<span class="pt-num" id="pt-${rIdx}-${p}">${p}</span>` : `<span>-</span>`;
+    });
+    html += `</div></td>`;
+    html += `<td class="col-score" id="row-score-${rIdx}">${r.max}</td>`;
+    tr.innerHTML = html;
+
+    if (r.side === 'L') leftBody.appendChild(tr);
+    else rightBody.appendChild(tr);
+  });
+
+  state.forEach((st, rIdx) => {
+    st.subPhotos.forEach((photos, sIdx) => {
+      if (photos.length > 0) renderThumbs(rIdx, sIdx);
+    });
+  });
+
+  const obsTr = document.createElement('tr');
+  obsTr.innerHTML = `
+    <td class="col-area">觀察項目</td>
+    <td colspan="3" style="padding:0;">
+      <div style="background:#e0e0e0; text-align:center; font-weight:bold; padding:2px; border-bottom:1.5px solid #000; font-size:0.78rem;">
+        客用廁所服務設施：對外開放與告示確認
+      </div>
+      <div style="padding:2px 4px;">
+        <div class="obs-row"><span>門市有無對外廁所?</span><span class="obs-opts"><label><input type="radio" name="o1" value="有" checked>有</label><label><input type="radio" name="o1" value="無">無</label></span></div>
+        <div class="obs-row"><span>對外廁所有無開放?</span><span class="obs-opts"><label><input type="radio" name="o2" value="有" checked>有</label><label><input type="radio" name="o2" value="無">無</label><label><input type="radio" name="o2" value="無對外廁所">無對外廁所</label></span></div>
+        <div class="obs-row"><span>E-MAP 有無廁所服務?</span><span class="obs-opts"><label><input type="radio" name="o3" value="有" checked>有</label><label><input type="radio" name="o3" value="無">無</label></span></div>
+        <div class="obs-row"><span>招牌有無標示廁所服務?</span><span class="obs-opts"><label><input type="radio" name="o4" value="有" checked>有</label><label><input type="radio" name="o4" value="無">無</label></span></div>
+        <div class="obs-row"><span>店內有無對外廁所告示?</span><span class="obs-opts"><label><input type="radio" name="o5" value="有" checked>有</label><label><input type="radio" name="o5" value="無">無</label></span></div>
+      </div>
+    </td>
+  `;
+  rightBody.appendChild(obsTr);
+  updateCalculations();
+}
+
+function toggleSub(rIdx, sIdx) {
+  syncEndTime();
+  state[rIdx].subPass[sIdx] = !state[rIdx].subPass[sIdx];
+  const isFailed = !state[rIdx].subPass[sIdx];
+  document.getElementById(`sub-${rIdx}-${sIdx}`).classList.toggle('deducted', isFailed);
+  document.getElementById(`drawer-${rIdx}-${sIdx}`).classList.toggle('show', isFailed);
+  updateCalculations();
+}
+
+function compressImage(file, targetPPI = 220, quality = 0.82) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width;
+        let h = img.height;
+
+        const targetWidth = Math.round(3.5 * targetPPI);
+
+        if (w > targetWidth) {
+          h = Math.round(h * (targetWidth / w));
+          w = targetWidth;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, w, h);
+
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleFiles(event, rIdx, sIdx) {
+  syncEndTime();
+  const files = Array.from(event.target.files);
+  for (const file of files) {
+    const compressedDataUrl = await compressImage(file);
+    state[rIdx].subPhotos[sIdx].push(compressedDataUrl);
+  }
+  renderThumbs(rIdx, sIdx);
+  event.target.value = '';
+}
+
+function renderThumbs(rIdx, sIdx) {
+  const wrap = document.getElementById(`thumbs-${rIdx}-${sIdx}`);
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  state[rIdx].subPhotos[sIdx].forEach((src, pIdx) => {
+    const div = document.createElement('div');
+    div.className = 'thumb-item';
+    div.innerHTML = `<img src="${src}"><span class="thumb-del" onclick="removePhoto(${rIdx}, ${sIdx}, ${pIdx})">×</span>`;
+    wrap.appendChild(div);
+  });
+}
+
+function removePhoto(rIdx, sIdx, pIdx) {
+  state[rIdx].subPhotos[sIdx].splice(pIdx, 1);
+  renderThumbs(rIdx, sIdx);
+}
+
+function getGradeText(total) {
+  if (total >= 96) return 'A+級';
+  if (total >= 92) return 'A級';
+  if (total >= 88) return 'A-級';
+  if (total >= 80) return 'B級';
+  if (total >= 76) return 'C級';
+  return 'Z級';
+}
+
+function updateCalculations() {
+  const counts = { 0: 0, 2: 0, 4: 0, 6: 0, 8: 0 };
+  let total = 0;
+
+  state.forEach((st, rIdx) => {
+    const rowScore = st.subPass.filter(Boolean).length * 2;
+    counts[rowScore] = (counts[rowScore] || 0) + 1;
+    total += rowScore;
+    document.getElementById(`row-score-${rIdx}`).innerText = rowScore;
+    [0, 2, 4, 6, 8].forEach(p => {
+      const ptEl = document.getElementById(`pt-${rIdx}-${p}`);
+      if (ptEl) ptEl.classList.toggle('active', p === rowScore);
+    });
+  });
+
+  document.getElementById('cnt-2').innerText = counts[2];
+  document.getElementById('cnt-4').innerText = counts[4];
+  document.getElementById('cnt-6').innerText = counts[6];
+  document.getElementById('cnt-8').innerText = counts[8];
+  document.getElementById('totalScore').innerText = total;
+
+  const grades = ['g-Z', 'g-C', 'g-B', 'g-Am', 'g-A', 'g-Ap'];
+  grades.forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove('active');
+    el.innerText = el.innerText.replace('■', '□');
+  });
+
+  let activeG = 'g-Z';
+  if (total >= 96) activeG = 'g-Ap';
+  else if (total >= 92) activeG = 'g-A';
+  else if (total >= 88) activeG = 'g-Am';
+  else if (total >= 80) activeG = 'g-B';
+  else if (total >= 76) activeG = 'g-C';
+
+  const targetEl = document.getElementById(activeG);
+  targetEl.classList.add('active');
+  targetEl.innerText = targetEl.innerText.replace('□', '■');
+}
+
+async function uploadToGoogleDrive() {
+  syncEndTime();
+  const gasUrl = cleanGasUrl(document.getElementById('gasUrlInput').value);
+  if (!gasUrl) {
+    alert('請先在上方輸入您的 GAS 雲端網址！');
+    return;
+  }
+  const storeId = document.getElementById('storeIdInput').value.trim();
+  const storeName = document.getElementById('storeNameInput').value.trim();
+  if (!storeId || !storeName) {
+    alert('請填寫「店號」與「門市名稱」後再上傳成績！');
+    return;
+  }
+
+  const btn = document.getElementById('cloudUploadBtn');
+  const statusMsg = document.getElementById('uploadStatusMsg');
+  btn.disabled = true;
+  btn.innerText = '⏳ 上傳中...';
+  statusMsg.style.color = '#fbbf24';
+  statusMsg.innerText = '正在上傳成績至雲端...';
+
+  const m = document.getElementById('mInput').value;
+  const d = document.getElementById('dInput').value;
+  const sh = document.getElementById('shInput').value;
+  const sm = document.getElementById('smInput').value;
+  const eh = document.getElementById('ehInput').value;
+  const em = document.getElementById('emInput').value;
+  const totalScore = Number(document.getElementById('totalScore').innerText);
+
+  const areaScores = { outer: 0, self: 0, counter: 0, fridge: 0, floor: 0, toilet: 0 };
+  const failList = [];
+
+  state.forEach((st, rIdx) => {
+    const sc = st.subPass.filter(Boolean).length * 2;
+    areaScores[st.areaKey] += sc;
+
+    st.subPass.forEach((isPass, sIdx) => {
+      if (!isPass) {
+        const subName = rowsData[rIdx].subs[sIdx];
+        const note = st.subNotes[sIdx];
+        failList.push(`【第${rIdx+1}列】${subName}${note ? ' (' + note + ')' : ''}`);
+      }
+    });
+  });
+
+  const getRadioVal = name => {
+    const checked = document.querySelector(`input[name="${name}"]:checked`);
+    return checked ? checked.value : '';
+  };
+
+  const payload = {
+    zone: document.getElementById('zoneInput').value.trim() || '未填',
+    auditor: document.getElementById('auditorInput').value.trim() || '未填',
+    storeId,
+    storeName,
+    dateStr: `2026-${pad2(m)}-${pad2(d)}`,
+    lockedTimeRange: `${m}月${d}日 ${sh}:${sm}~${eh}:${em}`,
+    totalScore,
+    grade: getGradeText(totalScore),
+    areaScores,
+    obsSummary: `對外:${getRadioVal('o1')} / 開放:${getRadioVal('o2')} / EMAP:${getRadioVal('o3')} / 招牌:${getRadioVal('o4')} / 店內:${getRadioVal('o5')}`,
+    failSummary: failList.length > 0 ? failList.join('\n') : '全項合格無缺失',
+    photos: []
+  };
+
+  try {
+    const res = await fetch(gasUrl, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if (result.status === 'success') {
+      statusMsg.style.color = '#34d399';
+      statusMsg.innerHTML = `✅ 已成功寫入雲端總表！(${storeId} ${storeName} : ${totalScore}分)`;
+      alert(`🎉 上傳成功！\n門市：${storeId} ${storeName}\n總分：${totalScore} 分 (${payload.grade})`);
+    } else {
+      throw new Error(result.message || '後端回傳未知錯誤');
+    }
+  } catch (err) {
+    statusMsg.style.color = '#f87171';
+    statusMsg.innerText = '❌ 上傳失敗，請點選「🔍 測試連線」確認部署狀態。';
+    alert('上傳異常：\n' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerText = '☁️ 上傳雲端硬碟';
+  }
+}
+
+function resetAll() {
+  if (!confirm('確定要重設檢核項目嗎？')) return;
+  state.forEach(st => {
+    st.subPass = st.subPass.map(() => true);
+    st.subNotes = st.subNotes.map(() => '');
+    st.subPhotos = st.subPhotos.map(() => []);
+  });
+  renderTables();
+}
+
+initLockedTime();
+renderTables();
+
+// 網頁載入完成後跳出警示對話框
+window.addEventListener('DOMContentLoaded', () => {
+  alert(
+    "【數位訪表注意事項】\n\n" +
+    "1. 網頁評分後【缺失相片】不會上傳雲端。\n" +
+    "2. 如需留存照片，請使用手機內建【相機APP】拍照後，再匯入評分表列印/儲存PDF表。"
+  );
+});
+</script>
+</body>
+</html>
